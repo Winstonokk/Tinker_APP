@@ -272,6 +272,8 @@ public class FetchPatchHandler extends Handler {
 
 #### 编译基准包
 
+#### 使用360加固助手对apk进行多渠道配置和加固
+
 #### 发布补丁
 具体打包和发布补丁过程在此不详述，如有问题可联系wangfengkxhp@163.com
 
