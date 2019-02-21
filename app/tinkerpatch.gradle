@@ -7,49 +7,63 @@ apply plugin: 'tinkerpatch-support'
 //基包路径
 def bakPath = file("${buildDir}/bakApk/")
 //基包文件夹名（打补丁包的时候，需要修改）
-def baseInfo = "app-1.0.1-0221-11-01-38"
+def baseInfo = "app-1.0.1-0221-15-19-35"
 //版本名称
 def variantName = "release"
 
 /**
  * 对于插件各参数的详细解析请参考
- *
+ * http://tinkerpatch.com/Docs/SDK
  */
 tinkerpatchSupport {
-    //可以在debug的时候关闭 tinkerPatch
+    /** 可以在debug的时候关闭 tinkerPatch, isRelease() 可以判断BuildType是否为Release **/
     tinkerEnable = true
-    //是否使用一键接入功能 默认为false  是否反射 Application 实现一键接入；
-    // 一般来说，接入 Tinker 我们需要改造我们的 Application, 若这里为 true， 即我们无需对应用做任何改造即可接入。
     reflectApplication = true
-    //将每次编译产生的 apk/mapping.txt/R.txt 归档存储的位置
+    /**
+     * 是否开启加固模式，只能在APK将要进行加固时使用，否则会patch失败。
+     * 如果只在某个渠道使用了加固，可使用多flavors配置
+     **/
+    protectedApp = true
+    /**
+     * 实验功能
+     * 补丁是否支持新增 Activity (新增Activity的exported属性必须为false)
+     **/
+    supportComponent = true
+
     autoBackupApkPath = "${bakPath}"
-    appKey = "582e640cae57f603"// 注意！！！  需要修改成你的appkey
+
+    appKey = "a675819313e09e03"
 
     /** 注意: 若发布新的全量包, appVersion一定要更新 **/
-    appVersion = "1.0.1"
-
-    protectedApp=true//使用加固
+    appVersion = "1.0.2"
 
     def pathPrefix = "${bakPath}/${baseInfo}/${variantName}/"
     def name = "${project.name}-${variantName}"
-    /**
-     * 基准包的文件路径, 对应 tinker 插件中的 oldApk 参数;编译补丁包时，
-     * 必需指定基准版本的 apk，默认值为空，则表示不是进行补丁包的编译
-     */
+
     baseApkFile = "${pathPrefix}/${name}.apk"
+    baseProguardMappingFile = "${pathPrefix}/${name}-mapping.txt"
+    baseResourceRFile = "${pathPrefix}/${name}-R.txt"
 
     /**
-     * 基准包的 Proguard mapping.txt 文件路径, 对应 tinker 插件 applyMapping 参数；在编译新的 apk 时候，
-     * 我们希望通过保持基准 apk 的 proguard 混淆方式，
-     * 从而减少补丁包的大小。这是强烈推荐的，编译补丁包时，我们推荐输入基准 apk 生成的 mapping.txt 文件。
+     * （可选）重命名备份文件的格式化字符串，默认为'${appName}-${variantName}'
+     *
+     * Available vars:
+     * 1. projectName
+     * 2. appName
+     * 3. packageName
+     * 4. buildType
+     * 5. versionName
+     * 6. versionCode
+     * 7. buildTime
+     * 8. fileSHA1
+     * 9. flavorName
+     * 10. variantName
+     *
+     * default value: '${appName}-${variantName}'
+     * Note: plz use single-quotation wrapping this format string
      */
-    baseProguardMappingFile = "${pathPrefix}/${name}-mapping.txt"
-    /**
-     * 基准包的资源 R.txt 文件路径, 对应 tinker 插件 applyResourceMapping 参数；在编译新的apk时候，
-     * 我们希望通基准 apk 的 R.txt 文件来保持 Resource Id 的分配，这样不仅可以减少补丁包的大小，
-     * 同时也避免由于 Resource Id 改变导致 remote view 异常
-     */
-    baseResourceRFile = "${pathPrefix}/${name}-R.txt"
+    backupFileNameFormat = '${appName}-${variantName}'
+
     /**
      *  若有编译多flavors需求, 可以参照： https://github.com/TinkerPatch/tinkerpatch-flavors-sample
      *  注意: 除非你不同的flavor代码是不一样的,不然建议采用zip comment或者文件方式生成渠道信息（相关工具：walle 或者 packer-ng）
@@ -64,6 +78,7 @@ android {
         buildConfigField "boolean", "TINKER_ENABLE", "${tinkerpatchSupport.tinkerEnable}"
     }
 }
+
 /**
  * 一般来说,我们无需对下面的参数做任何的修改
  * 对于各参数的详细介绍请参考:
@@ -71,7 +86,7 @@ android {
  */
 tinkerPatch {
     ignoreWarning = false
-    useSign = true  //是否需要签名，打正式包如果这里是true，则要配置签名，否则会编译不过去
+    useSign = true
     dex {
         dexMode = "jar"
         pattern = ["classes*.dex"]
@@ -86,6 +101,7 @@ tinkerPatch {
         ignoreChange = []
         largeModSize = 100
     }
+
     packageConfig {
     }
     sevenZip {
