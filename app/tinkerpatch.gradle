@@ -1,0 +1,98 @@
+apply plugin: 'tinkerpatch-support'
+
+/**
+ * TODO: 请按自己的需求修改为适应自己工程的参数
+ */
+
+//基包路径
+def bakPath = file("${buildDir}/bakApk/")
+//基包文件夹名（打补丁包的时候，需要修改）
+def baseInfo = "app-1.0.1-0221-11-01-38"
+//版本名称
+def variantName = "release"
+
+/**
+ * 对于插件各参数的详细解析请参考
+ *
+ */
+tinkerpatchSupport {
+    //可以在debug的时候关闭 tinkerPatch
+    tinkerEnable = true
+    //是否使用一键接入功能 默认为false  是否反射 Application 实现一键接入；
+    // 一般来说，接入 Tinker 我们需要改造我们的 Application, 若这里为 true， 即我们无需对应用做任何改造即可接入。
+    reflectApplication = true
+    //将每次编译产生的 apk/mapping.txt/R.txt 归档存储的位置
+    autoBackupApkPath = "${bakPath}"
+    appKey = "582e640cae57f603"// 注意！！！  需要修改成你的appkey
+
+    /** 注意: 若发布新的全量包, appVersion一定要更新 **/
+    appVersion = "1.0.1"
+
+    protectedApp=true//使用加固
+
+    def pathPrefix = "${bakPath}/${baseInfo}/${variantName}/"
+    def name = "${project.name}-${variantName}"
+    /**
+     * 基准包的文件路径, 对应 tinker 插件中的 oldApk 参数;编译补丁包时，
+     * 必需指定基准版本的 apk，默认值为空，则表示不是进行补丁包的编译
+     */
+    baseApkFile = "${pathPrefix}/${name}.apk"
+
+    /**
+     * 基准包的 Proguard mapping.txt 文件路径, 对应 tinker 插件 applyMapping 参数；在编译新的 apk 时候，
+     * 我们希望通过保持基准 apk 的 proguard 混淆方式，
+     * 从而减少补丁包的大小。这是强烈推荐的，编译补丁包时，我们推荐输入基准 apk 生成的 mapping.txt 文件。
+     */
+    baseProguardMappingFile = "${pathPrefix}/${name}-mapping.txt"
+    /**
+     * 基准包的资源 R.txt 文件路径, 对应 tinker 插件 applyResourceMapping 参数；在编译新的apk时候，
+     * 我们希望通基准 apk 的 R.txt 文件来保持 Resource Id 的分配，这样不仅可以减少补丁包的大小，
+     * 同时也避免由于 Resource Id 改变导致 remote view 异常
+     */
+    baseResourceRFile = "${pathPrefix}/${name}-R.txt"
+    /**
+     *  若有编译多flavors需求, 可以参照： https://github.com/TinkerPatch/tinkerpatch-flavors-sample
+     *  注意: 除非你不同的flavor代码是不一样的,不然建议采用zip comment或者文件方式生成渠道信息（相关工具：walle 或者 packer-ng）
+     **/
+}
+
+/**
+ * 用于用户在代码中判断tinkerPatch是否被使能
+ */
+android {
+    defaultConfig {
+        buildConfigField "boolean", "TINKER_ENABLE", "${tinkerpatchSupport.tinkerEnable}"
+    }
+}
+/**
+ * 一般来说,我们无需对下面的参数做任何的修改
+ * 对于各参数的详细介绍请参考:
+ * https://github.com/Tencent/tinker/wiki/Tinker-%E6%8E%A5%E5%85%A5%E6%8C%87%E5%8D%97
+ */
+tinkerPatch {
+    ignoreWarning = false
+    useSign = true  //是否需要签名，打正式包如果这里是true，则要配置签名，否则会编译不过去
+    dex {
+        dexMode = "jar"
+        pattern = ["classes*.dex"]
+        loader = []
+    }
+    lib {
+        pattern = ["lib/*/*.so"]
+    }
+
+    res {
+        pattern = ["res/*", "r/*", "assets/*", "resources.arsc", "AndroidManifest.xml"]
+        ignoreChange = []
+        largeModSize = 100
+    }
+    packageConfig {
+    }
+    sevenZip {
+        zipArtifact = "com.tencent.mm:SevenZip:1.1.10"
+//        path = "/usr/local/bin/7za"
+    }
+    buildConfig {
+        keepDexApply = false
+    }
+}
