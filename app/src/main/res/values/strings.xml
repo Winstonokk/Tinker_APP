@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">TinkerDemo</string>
+    <string name="bug_exit">卧槽，竟然都有bug</string>
+    <string name="bug_handle">哈哈哈，渠道包bug已经修复了...</string>
+</resources>
